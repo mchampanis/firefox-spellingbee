@@ -2,6 +2,8 @@
 
 A Firefox extension that tracks your NYT Spelling Bee words.
 
+![Extension screenshot](assets/screenshot.png)
+
 ## Building
 
 Requires [Node.js](https://nodejs.org/) and `web-ext`:
@@ -21,6 +23,8 @@ The XPI will be output to `./web-ext-artifacts/`.
 4. Navigate to this folder and select `manifest.json`
 
 The extension is now active. It will stay loaded until you restart Firefox.
+
+Click `Reload` on the same page to reload any dev changes you make.
 
 ## Usage
 
