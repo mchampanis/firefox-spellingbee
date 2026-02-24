@@ -1,0 +1,73 @@
+/* --- Status banner --- */
+#sbf-banner {
+  padding: 6px 12px;
+  margin-bottom: 10px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: inherit;
+  border: 1px solid transparent;
+}
+
+#sbf-banner[data-state="ok"] {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border-color: #a5d6a7;
+}
+
+#sbf-banner[data-state="empty"] {
+  background: #fff8e1;
+  color: #f57f17;
+  border-color: #ffe082;
+}
+
+#sbf-banner[data-state="mismatch"] {
+  background: #fce4ec;
+  color: #b71c1c;
+  border-color: #ef9a9a;
+}
+
+/* --- Grid spacing --- */
+table.table {
+  border-collapse: separate !important;
+  border-spacing: 3px !important;
+}
+
+table.table td.cell {
+  padding: 3px 8px !important;
+  border-radius: 3px;
+}
+
+/* --- Grid cells --- */
+.sbf-partial {
+  background-color: #fff9c4 !important;
+}
+
+.sbf-complete {
+  background-color: #c8e6c9 !important;
+  color: #555 !important;
+}
+
+/* Found count shown in green */
+.sbf-n {
+  color: #2e7d32;
+  font-weight: 700;
+}
+
+.sbf-sep {
+  color: #aaa;
+  margin: 0 1px;
+}
+
+.sbf-dim {
+  color: #999;
+}
+
+/* --- Two-letter list --- */
+.sbf-tl-partial {
+  font-weight: 700;
+  color: #e65100;
+}
+
+.sbf-tl-complete {
+  color: #aaa;
+}

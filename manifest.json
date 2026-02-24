@@ -1,0 +1,21 @@
+{
+  "manifest_version": 2,
+  "name": "Spelling Bee Hint Tracker",
+  "version": "1.0",
+  "description": "Syncs your found words from the NYT Spelling Bee game to the hints page grid.",
+  "permissions": [
+    "storage",
+    "https://www.nytimes.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://www.nytimes.com/puzzles/spelling-bee*"],
+      "js": ["content-game.js"]
+    },
+    {
+      "matches": ["https://www.nytimes.com/*/crosswords/spelling-bee-forum.html*"],
+      "js": ["content.js"],
+      "css": ["content.css"]
+    }
+  ]
+}

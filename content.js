@@ -1,0 +1,248 @@
+// for: https://www.nytimes.com/*/crosswords/spelling-bee-forum.html
+// reads found words from storage (written by content-game.js) and overlays "found / total" 
+// counts on the hints grid and two-letter list.
+
+const DATA_KEY = 'sbf_data';
+const MAX_AGE_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
+
+// Returns { grid, puzzleKey } where:
+//   grid:      { letter → { length → { cell, total } } }
+//   puzzleKey: letters from row headers sorted, e.g. "cfilnot"
+function parseGrid() {
+  const table = document.querySelector('table.table');
+  if (!table) return null;
+
+  const rows = [...table.querySelectorAll('tr.row')];
+  if (rows.length < 2) return null;
+
+  // header row -> column index to word length
+  const colToLength = {};
+  [...rows[0].querySelectorAll('td.cell')].forEach((cell, i) => {
+    const n = parseInt(cell.textContent.trim());
+    if (!isNaN(n)) colToLength[i] = n;
+  });
+
+  const grid = {};
+  const letters = [];
+
+  rows.slice(1).forEach(row => {
+    const cells = [...row.querySelectorAll('td.cell')];
+    if (!cells.length) return;
+
+    // first cell holds the letter; the Σ totals row has no [a-z] match
+    const letterMatch = cells[0].textContent.match(/([a-z])/i);
+    if (!letterMatch) return;
+
+    const letter = letterMatch[1].toLowerCase();
+    letters.push(letter);
+    grid[letter] = {};
+
+    cells.forEach((cell, colIdx) => {
+      if (colIdx === 0) return;             // letter label column
+      if (!(colIdx in colToLength)) return; // Σ total column
+
+      const total = parseInt(cell.textContent.trim());
+      if (isNaN(total) || total === 0) return;
+
+      grid[letter][colToLength[colIdx]] = { cell, total };
+    });
+  });
+
+  return { grid, puzzleKey: letters.sort().join('') };
+}
+
+function parseTwoLetterList() {
+  const items = {};
+
+  let dataPara = null;
+  for (const p of document.querySelectorAll('p.content')) {
+    if (/two.?letter.?list/i.test(p.textContent)) {
+      dataPara = p.nextElementSibling;
+      break;
+    }
+  }
+  if (!dataPara) return items;
+
+  dataPara.querySelectorAll('span').forEach(span => {
+    const rawText = [...span.childNodes]
+      .filter(n => n.nodeType === Node.TEXT_NODE)
+      .map(n => n.textContent)
+      .join('')
+      .trim();
+    if (!rawText) return;
+
+    const hasBr = !!span.querySelector('br');
+
+    const newHTML = rawText
+      .split(/\s+/)
+      .filter(Boolean)
+      .map(token => {
+        const m = token.match(/^([a-z]{2})-(\d+)$/i);
+        if (!m) return token;
+        const prefix = m[1].toLowerCase();
+        const total = parseInt(m[2]);
+        return `<span class="sbf-tl" data-prefix="${prefix}" data-total="${total}">${token}</span>`;
+      })
+      .join(' ');
+
+    span.innerHTML = newHTML + (hasBr ? '<br>' : '');
+
+    span.querySelectorAll('.sbf-tl').forEach(el => {
+      items[el.dataset.prefix] = { el, total: parseInt(el.dataset.total) };
+    });
+  });
+
+  return items;
+}
+
+function countWords(words) {
+  const byLetterLength = {};
+  const byPrefix = {};
+
+  for (const word of words) {
+    if (!word || word.length < 4) continue;
+    const letter = word[0];
+    const len = word.length;
+    const prefix = word.slice(0, 2);
+
+    if (!byLetterLength[letter]) byLetterLength[letter] = {};
+    byLetterLength[letter][len] = (byLetterLength[letter][len] || 0) + 1;
+    byPrefix[prefix] = (byPrefix[prefix] || 0) + 1;
+  }
+  return { byLetterLength, byPrefix };
+}
+
+function updateCell(cell, found, total) {
+  cell.classList.remove('sbf-partial', 'sbf-complete');
+
+  if (found === 0) {
+    cell.textContent = String(total);
+  } else if (found >= total) {
+    cell.innerHTML = `<s>${total}</s>`;
+    cell.classList.add('sbf-complete');
+  } else {
+    cell.innerHTML = `<span class="sbf-n">${found}</span><span class="sbf-sep">/</span>${total}`;
+    cell.classList.add('sbf-partial');
+  }
+}
+
+function updateTLItem(el, prefix, found, total) {
+  el.classList.remove('sbf-tl-partial', 'sbf-tl-complete');
+
+  if (found === 0) {
+    el.textContent = `${prefix}-${total}`;
+  } else if (found >= total) {
+    el.innerHTML = `<s>${prefix}-${total}</s>`;
+    el.classList.add('sbf-tl-complete');
+  } else {
+    el.innerHTML = `${prefix}-<span class="sbf-n">${found}</span>/<span class="sbf-dim">${total}</span>`;
+    el.classList.add('sbf-tl-partial');
+  }
+}
+
+function applyFoundWords(foundWords, grid, tlItems) {
+  const { byLetterLength, byPrefix } = countWords(foundWords);
+
+  for (const [letter, lengths] of Object.entries(grid)) {
+    for (const [len, { cell, total }] of Object.entries(lengths)) {
+      const found = (byLetterLength[letter] || {})[Number(len)] || 0;
+      updateCell(cell, found, total);
+    }
+  }
+
+  for (const [prefix, { el, total }] of Object.entries(tlItems)) {
+    updateTLItem(el, prefix, byPrefix[prefix] || 0, total);
+  }
+
+  updateBanner('ok', foundWords.length);
+}
+
+let banner = null;
+
+function injectBanner(table) {
+  if (banner) return;
+  banner = document.createElement('div');
+  banner.id = 'sbf-banner';
+  table.parentNode.insertBefore(banner, table);
+}
+
+function updateBanner(state, wordCount) {
+  if (!banner) return;
+  banner.dataset.state = state;
+
+  if (state === 'ok') {
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    banner.textContent = `${wordCount} word${wordCount === 1 ? '' : 's'} found · synced at ${time}`;
+  } else if (state === 'mismatch') {
+    banner.textContent = "Synced data is from a different puzzle — open today's Spelling Bee tab to update.";
+  } else {
+    banner.textContent = 'No words found yet — open the Spelling Bee game tab to sync.';
+  }
+}
+
+let grid = null;
+let puzzleKey = null;
+let tlItems = null;
+
+function loadAndApply() {
+  browser.storage.local.get(DATA_KEY, result => {
+    const data = result[DATA_KEY];
+
+    // expired data — clean up and treat as empty
+    if (data && data.savedAt && Date.now() - data.savedAt > MAX_AGE_MS) {
+      browser.storage.local.remove(DATA_KEY);
+      updateBanner('empty', 0);
+      return;
+    }
+
+    if (!data || !data.words || !data.words.length) {
+      updateBanner('empty', 0);
+      return;
+    }
+
+    // both sides derived a puzzle key — check they match
+    if (puzzleKey && data.key && data.key !== puzzleKey) {
+      updateBanner('mismatch', 0);
+      return;
+    }
+
+    applyFoundWords(data.words, grid, tlItems);
+  });
+}
+
+function init() {
+  const table = document.querySelector('table.table');
+  if (!table) return false;
+
+  const parsed = parseGrid();
+  if (!parsed) return false;
+
+  grid = parsed.grid;
+  puzzleKey = parsed.puzzleKey;
+  tlItems = parseTwoLetterList();
+  injectBanner(table);
+
+  loadAndApply();
+
+  // live updates when the game tab writes new data
+  browser.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && DATA_KEY in changes) {
+      const data = changes[DATA_KEY].newValue;
+      if (!data) { updateBanner('empty', 0); return; }
+      if (puzzleKey && data.key && data.key !== puzzleKey) { updateBanner('mismatch', 0); return; }
+      applyFoundWords(data.words || [], grid, tlItems);
+    }
+  });
+
+  return true;
+}
+
+function waitForTable() {
+  if (init()) return;
+  const observer = new MutationObserver(() => {
+    if (init()) observer.disconnect();
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+}
+
+waitForTable();
