@@ -73,19 +73,22 @@ function parseTwoLetterList() {
 
     const hasBr = !!span.querySelector('br');
 
-    const newHTML = rawText
-      .split(/\s+/)
-      .filter(Boolean)
-      .map(token => {
-        const m = token.match(/^([a-z]{2})-(\d+)$/i);
-        if (!m) return token;
-        const prefix = m[1].toLowerCase();
-        const total = parseInt(m[2]);
-        return `<span class="sbf-tl" data-prefix="${prefix}" data-total="${total}">${token}</span>`;
-      })
-      .join(' ');
-
-    span.innerHTML = newHTML + (hasBr ? '<br>' : '');
+    span.textContent = '';
+    rawText.split(/\s+/).filter(Boolean).forEach((token, i) => {
+      if (i > 0) span.appendChild(document.createTextNode(' '));
+      const m = token.match(/^([a-z]{2})-(\d+)$/i);
+      if (!m) {
+        span.appendChild(document.createTextNode(token));
+      } else {
+        const tlEl = document.createElement('span');
+        tlEl.className = 'sbf-tl';
+        tlEl.dataset.prefix = m[1].toLowerCase();
+        tlEl.dataset.total = String(parseInt(m[2]));
+        tlEl.textContent = token;
+        span.appendChild(tlEl);
+      }
+    });
+    if (hasBr) span.appendChild(document.createElement('br'));
 
     span.querySelectorAll('.sbf-tl').forEach(el => {
       items[el.dataset.prefix] = { el, total: parseInt(el.dataset.total) };
@@ -118,10 +121,22 @@ function updateCell(cell, found, total) {
   if (found === 0) {
     cell.textContent = String(total);
   } else if (found >= total) {
-    cell.innerHTML = `<s>${total}</s>`;
+    cell.textContent = '';
+    const s = document.createElement('s');
+    s.textContent = String(total);
+    cell.appendChild(s);
     cell.classList.add('sbf-complete');
   } else {
-    cell.innerHTML = `<span class="sbf-n">${found}</span><span class="sbf-sep">/</span>${total}`;
+    cell.textContent = '';
+    const nSpan = document.createElement('span');
+    nSpan.className = 'sbf-n';
+    nSpan.textContent = String(found);
+    const sepSpan = document.createElement('span');
+    sepSpan.className = 'sbf-sep';
+    sepSpan.textContent = '/';
+    cell.appendChild(nSpan);
+    cell.appendChild(sepSpan);
+    cell.appendChild(document.createTextNode(String(total)));
     cell.classList.add('sbf-partial');
   }
 }
@@ -132,10 +147,23 @@ function updateTLItem(el, prefix, found, total) {
   if (found === 0) {
     el.textContent = `${prefix}-${total}`;
   } else if (found >= total) {
-    el.innerHTML = `<s>${prefix}-${total}</s>`;
+    el.textContent = '';
+    const s = document.createElement('s');
+    s.textContent = `${prefix}-${total}`;
+    el.appendChild(s);
     el.classList.add('sbf-tl-complete');
   } else {
-    el.innerHTML = `${prefix}-<span class="sbf-n">${found}</span>/<span class="sbf-dim">${total}</span>`;
+    el.textContent = '';
+    el.appendChild(document.createTextNode(`${prefix}-`));
+    const nSpan = document.createElement('span');
+    nSpan.className = 'sbf-n';
+    nSpan.textContent = String(found);
+    el.appendChild(nSpan);
+    el.appendChild(document.createTextNode('/'));
+    const dimSpan = document.createElement('span');
+    dimSpan.className = 'sbf-dim';
+    dimSpan.textContent = String(total);
+    el.appendChild(dimSpan);
     el.classList.add('sbf-tl-partial');
   }
 }

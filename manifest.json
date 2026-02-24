@@ -7,6 +7,14 @@
     "storage",
     "https://www.nytimes.com/*"
   ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "spelling-bee-hint-tracker@mchampanis",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
+    }
+  },
   "content_scripts": [
     {
       "matches": ["https://www.nytimes.com/puzzles/spelling-bee*"],
