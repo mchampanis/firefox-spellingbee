@@ -1,6 +1,6 @@
 # Spelling Bee Grid Tracker
 
-A Firefox extension that lets you click cells in the NYT Spelling Bee forum hints grid to track which words you've already found.
+A Firefox extension that tracks your NYT Spelling Bee words.
 
 ## How to install (temporary, for development)
 
@@ -11,25 +11,14 @@ A Firefox extension that lets you click cells in the NYT Spelling Bee forum hint
 
 The extension is now active. It will stay loaded until you restart Firefox.
 
-## To install permanently
-
-Package it as a `.xpi` and sign it via [addons.mozilla.org](https://addons.mozilla.org/), or use Firefox Developer Edition / Nightly which allow unsigned extensions.
-
 ## Usage
 
-1. Open any NYT Spelling Bee forum page, e.g.:
-   `https://www.nytimes.com/2026/02/24/crosswords/spelling-bee-forum.html`
+1. Open NYT Spelling Bee, i.e.: https://www.nytimes.com/puzzles/spelling-bee
 
-2. The hints grid cells become clickable. Click a cell to mark it green with a strikethrough.
+2. Open the hints page in a new browser window, e.g.: https://www.nytimes.com/2026/02/24/crosswords/spelling-bee-forum.html
 
-3. Click again to unmark it.
+3. Move and resize the windows so you can see both the puzzle and the hints at the same time.
 
-4. A **Clear marks** button and a found/total counter appear above the first grid.
+4. As you find words, the hints grid will update with the counts
 
-5. Your marks are saved per page URL and persist across browser sessions.
-
-## Adjusting the selector
-
-If the grid cells aren't being detected, open the browser console on the forum page
-and inspect the table structure. The extension targets all `<td>` elements inside
-`<table>` elements on the page, skipping cells that are empty, `0`, or `-`.
+Puzzles are stored in local browser storage for three days before being removed.
