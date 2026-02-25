@@ -7,7 +7,7 @@ const MAX_AGE_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
 
 // Returns { grid, puzzleKey } where:
 //   grid:      { letter → { length → { cell, total } } }
-//   puzzleKey: letters from row headers sorted, e.g. "cfilnot"
+//   puzzleKey: all 7 puzzle letters sorted, e.g. "adkorwy"
 function parseGrid() {
   const table = document.querySelector('table.table');
   if (!table) return null;
@@ -48,7 +48,21 @@ function parseGrid() {
     });
   });
 
-  return { grid, puzzleKey: letters.sort().join('') };
+  // Derive puzzleKey from the embedded letter display (always has all 7 letters),
+  // falling back to grid row headers (may be incomplete if some letters start no words).
+  let puzzleKey = null;
+  const interactive = document.querySelector('.sb-forum-embedded-interactive');
+  if (interactive) {
+    const letterPara = [...interactive.querySelectorAll('p.content')]
+      .find(p => /[a-z]/i.test(p.textContent) && !/center/i.test(p.textContent));
+    if (letterPara) {
+      const all = [...letterPara.textContent.matchAll(/[a-z]/gi)].map(m => m[0].toLowerCase());
+      if (all.length === 7) puzzleKey = all.sort().join('');
+    }
+  }
+  if (!puzzleKey) puzzleKey = letters.sort().join('');
+
+  return { grid, puzzleKey };
 }
 
 function parseTwoLetterList() {
@@ -203,10 +217,8 @@ function updateBanner(state, wordCount) {
   if (state === 'ok') {
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     banner.textContent = `${wordCount} word${wordCount === 1 ? '' : 's'} found · synced at ${time}`;
-  } else if (state === 'mismatch') {
-    banner.textContent = "Synced data is from a different puzzle — open today's Spelling Bee tab to update.";
   } else {
-    banner.textContent = 'No words found yet — open the Spelling Bee game tab to sync.';
+    banner.textContent = "No data for today's puzzle yet - open the Spelling Bee and start solving to sync.";
   }
 }
 
@@ -215,24 +227,20 @@ let puzzleKey = null;
 let tlItems = null;
 
 function loadAndApply() {
-  browser.storage.local.get(DATA_KEY, result => {
-    const data = result[DATA_KEY];
+  const storageKey = puzzleKey ? `${DATA_KEY}_${puzzleKey}` : DATA_KEY;
+  console.log('[sbf forum] loading from', storageKey);
+  browser.storage.local.get(storageKey, result => {
+    const data = result[storageKey];
 
-    // expired data — clean up and treat as empty
+    // expired data - clean up and treat as empty
     if (data && data.savedAt && Date.now() - data.savedAt > MAX_AGE_MS) {
-      browser.storage.local.remove(DATA_KEY);
+      browser.storage.local.remove(storageKey);
       updateBanner('empty', 0);
       return;
     }
 
     if (!data || !data.words || !data.words.length) {
       updateBanner('empty', 0);
-      return;
-    }
-
-    // both sides derived a puzzle key — check they match
-    if (puzzleKey && data.key && data.key !== puzzleKey) {
-      updateBanner('mismatch', 0);
       return;
     }
 
@@ -245,10 +253,11 @@ function addTermDefinitions() {
     'PANGRAM':  'A word that uses all 7 letters of the puzzle at least once.',
     'SPANGRAM': 'A pangram that uses each of the 7 letters exactly once (a perfect pangram).',
     'BINGO':    'The puzzle has at least one word starting with each of the 7 letters.',
+    'PERFECT':  'A pangram that uses each of the 7 letters exactly once.',
   };
 
   for (const p of document.querySelectorAll('p.content')) {
-    if (!/\b(SPANGRAMS?|PANGRAMS?|BINGO)\b/i.test(p.textContent)) continue;
+    if (!/\b(SPANGRAMS?|PANGRAMS?|BINGO|PERFECT)\b/i.test(p.textContent)) continue;
 
     const walker = document.createTreeWalker(p, NodeFilter.SHOW_TEXT);
     const textNodes = [];
@@ -257,7 +266,7 @@ function addTermDefinitions() {
 
     for (const textNode of textNodes) {
       const text = textNode.textContent;
-      const pattern = /\b(SPANGRAMS?|PANGRAMS?|BINGO)\b/gi;
+      const pattern = /\b(SPANGRAMS?|PANGRAMS?|BINGO|PERFECT)\b/gi;
       const parts = [];
       let lastIndex = 0;
       let match;
@@ -304,11 +313,12 @@ function init() {
   loadAndApply();
 
   // live updates when the game tab writes new data
+  const storageKey = puzzleKey ? `${DATA_KEY}_${puzzleKey}` : DATA_KEY;
+  console.log('[sbf forum] puzzleKey:', puzzleKey, '- listening on', storageKey);
   browser.storage.onChanged.addListener((changes, area) => {
-    if (area === 'local' && DATA_KEY in changes) {
-      const data = changes[DATA_KEY].newValue;
+    if (area === 'local' && storageKey in changes) {
+      const data = changes[storageKey].newValue;
       if (!data) { updateBanner('empty', 0); return; }
-      if (puzzleKey && data.key && data.key !== puzzleKey) { updateBanner('mismatch', 0); return; }
       applyFoundWords(data.words || [], grid, tlItems);
     }
   });
