@@ -1,5 +1,5 @@
 // for: https://www.nytimes.com/*/crosswords/spelling-bee-forum.html
-// reads found words from storage (written by content-game.js) and overlays "found / total" 
+// reads found words from storage (written by content-game.js) and overlays "found / total"
 // counts on the hints grid and two-letter list.
 
 const DATA_KEY = 'sbf_data';
@@ -116,10 +116,11 @@ function countWords(words) {
 }
 
 function updateCell(cell, found, total) {
-  cell.classList.remove('sbf-partial', 'sbf-complete');
+  cell.classList.remove('sbf-none', 'sbf-partial', 'sbf-complete');
 
   if (found === 0) {
     cell.textContent = String(total);
+    cell.classList.add('sbf-none');
   } else if (found >= total) {
     cell.textContent = '';
     const s = document.createElement('s');
@@ -142,10 +143,11 @@ function updateCell(cell, found, total) {
 }
 
 function updateTLItem(el, prefix, found, total) {
-  el.classList.remove('sbf-tl-partial', 'sbf-tl-complete');
+  el.classList.remove('sbf-tl-none', 'sbf-tl-partial', 'sbf-tl-complete');
 
   if (found === 0) {
     el.textContent = `${prefix}-${total}`;
+    el.classList.add('sbf-tl-none');
   } else if (found >= total) {
     el.textContent = '';
     const s = document.createElement('s');
@@ -238,6 +240,54 @@ function loadAndApply() {
   });
 }
 
+function addTermDefinitions() {
+  const definitions = {
+    'PANGRAM':  'A word that uses all 7 letters of the puzzle at least once.',
+    'SPANGRAM': 'A pangram that uses each of the 7 letters exactly once (a perfect pangram).',
+    'BINGO':    'The puzzle has at least one word starting with each of the 7 letters.',
+  };
+
+  for (const p of document.querySelectorAll('p.content')) {
+    if (!/\b(SPANGRAMS?|PANGRAMS?|BINGO)\b/i.test(p.textContent)) continue;
+
+    const walker = document.createTreeWalker(p, NodeFilter.SHOW_TEXT);
+    const textNodes = [];
+    let node;
+    while ((node = walker.nextNode())) textNodes.push(node);
+
+    for (const textNode of textNodes) {
+      const text = textNode.textContent;
+      const pattern = /\b(SPANGRAMS?|PANGRAMS?|BINGO)\b/gi;
+      const parts = [];
+      let lastIndex = 0;
+      let match;
+
+      while ((match = pattern.exec(text)) !== null) {
+        if (match.index > lastIndex) {
+          parts.push(document.createTextNode(text.slice(lastIndex, match.index)));
+        }
+        const term = match[1].toUpperCase();
+        const span = document.createElement('span');
+        span.className = 'sbf-term';
+        span.dataset.def = definitions[term] || definitions[term.replace(/S$/, '')] || '';
+        span.textContent = match[1];
+        parts.push(span);
+        lastIndex = pattern.lastIndex;
+      }
+
+      if (parts.length > 0) {
+        if (lastIndex < text.length) {
+          parts.push(document.createTextNode(text.slice(lastIndex)));
+        }
+        const parent = textNode.parentNode;
+        parts.forEach(part => parent.insertBefore(part, textNode));
+        parent.removeChild(textNode);
+      }
+    }
+    break;
+  }
+}
+
 function init() {
   const table = document.querySelector('table.table');
   if (!table) return false;
@@ -248,6 +298,7 @@ function init() {
   grid = parsed.grid;
   puzzleKey = parsed.puzzleKey;
   tlItems = parseTwoLetterList();
+  addTermDefinitions();
   injectBanner(table);
 
   loadAndApply();

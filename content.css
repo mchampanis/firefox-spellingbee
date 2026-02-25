@@ -1,4 +1,4 @@
-/* --- Status banner --- */
+/* status banner */
 #sbf-banner {
   padding: 6px 12px;
   margin-bottom: 10px;
@@ -26,7 +26,7 @@
   border-color: #ef9a9a;
 }
 
-/* --- Grid spacing --- */
+/* grid spacing */
 table.table {
   border-collapse: separate !important;
   border-spacing: 3px !important;
@@ -37,7 +37,11 @@ table.table td.cell {
   border-radius: 3px;
 }
 
-/* --- Grid cells --- */
+/* grid cells */
+.sbf-none {
+  background-color: #ffe082 !important;
+}
+
 .sbf-partial {
   background-color: #fff9c4 !important;
 }
@@ -47,10 +51,9 @@ table.table td.cell {
   color: #555 !important;
 }
 
-/* Found count shown in green */
+/* found count shown in green */
 .sbf-n {
-  color: #2e7d32;
-  font-weight: 700;
+  color: #e65100;
 }
 
 .sbf-sep {
@@ -58,14 +61,44 @@ table.table td.cell {
   margin: 0 1px;
 }
 
-.sbf-dim {
-  color: #999;
+/* term definitions (hover tooltips) */
+.sbf-term {
+  border-bottom: 1px dotted #999;
+  cursor: help;
+  position: relative;
 }
 
-/* --- Two-letter list --- */
-.sbf-tl-partial {
-  font-weight: 700;
-  color: #e65100;
+.sbf-term::after {
+  content: attr(data-def);
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+  color: #fff;
+  padding: 5px 9px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: normal;
+  text-transform: none;
+  white-space: normal;
+  width: 210px;
+  text-align: center;
+  z-index: 9999;
+  pointer-events: none;
+  line-height: 1.4;
+}
+
+.sbf-term:hover::after {
+  display: block;
+}
+
+/* two-letter list */
+.sbf-tl-none {
+  background-color: #fff9c4;
+  border-radius: 3px;
+  padding: 0 2px;
 }
 
 .sbf-tl-complete {
