@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Spelling Bee Hint Tracker",
-  "version": "1.0",
+  "version": "1.2",
   "description": "Syncs your found words from the NYT Spelling Bee game to the hints page grid.",
   "permissions": [
     "storage",
