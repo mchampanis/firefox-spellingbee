@@ -17,7 +17,7 @@ npm install -g web-ext
 bash build.sh
 ```
 
-If you're on Windows and have WSL/WSL2 installed then you need to install `nodejs` and `npm` with the package manager in a WSL shell. After that install `web-ext`: `sudo npm install -g web-ext`
+If you're on Windows and have WSL/WSL2 installed then you need to install `nodejs` and `npm` with the package manager in a WSL shell. After that continue as above, i.e. install `web-ext`: `sudo npm install -g web-ext`
 
 The XPI will be saved to `./web-ext-artifacts/`.
 
