@@ -132,10 +132,7 @@ function countWords(words) {
 function updateCell(cell, found, total) {
   cell.classList.remove('sbf-none', 'sbf-partial', 'sbf-complete');
 
-  if (found === 0) {
-    cell.textContent = String(total);
-    cell.classList.add('sbf-none');
-  } else if (found >= total) {
+  if (found >= total) {
     cell.textContent = '';
     const s = document.createElement('s');
     s.textContent = String(total);
@@ -152,17 +149,14 @@ function updateCell(cell, found, total) {
     cell.appendChild(nSpan);
     cell.appendChild(sepSpan);
     cell.appendChild(document.createTextNode(String(total)));
-    cell.classList.add('sbf-partial');
+    cell.classList.add(found === 0 ? 'sbf-none' : 'sbf-partial');
   }
 }
 
 function updateTLItem(el, prefix, found, total) {
   el.classList.remove('sbf-tl-none', 'sbf-tl-partial', 'sbf-tl-complete');
 
-  if (found === 0) {
-    el.textContent = `${prefix}-${total}`;
-    el.classList.add('sbf-tl-none');
-  } else if (found >= total) {
+  if (found >= total) {
     el.textContent = '';
     const s = document.createElement('s');
     s.textContent = `${prefix}-${total}`;
@@ -180,7 +174,7 @@ function updateTLItem(el, prefix, found, total) {
     dimSpan.className = 'sbf-dim';
     dimSpan.textContent = String(total);
     el.appendChild(dimSpan);
-    el.classList.add('sbf-tl-partial');
+    el.classList.add(found === 0 ? 'sbf-tl-none' : 'sbf-tl-partial');
   }
 }
 

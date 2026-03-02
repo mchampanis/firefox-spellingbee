@@ -96,11 +96,18 @@ table.table td.cell {
 
 /* two-letter list */
 .sbf-tl-none {
+  background-color: #ffe082;
+  border-radius: 3px;
+  padding: 0px 1px 4px 1px;
+}
+
+.sbf-tl-partial {
   background-color: #fff9c4;
   border-radius: 3px;
-  padding: 0 2px;
+  padding: 0px 1px 4px 1px;
 }
 
 .sbf-tl-complete {
   color: #aaa;
+  padding: 0px 1px 4px 1px;
 }

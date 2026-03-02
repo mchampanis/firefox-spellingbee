@@ -54,11 +54,25 @@ function attachObserver() {
   return true;
 }
 
+function attachHintsLinkPatch() {
+  const link = document.querySelector('.pz-toolbar-button__hints');
+  if (!link) return false;
+  link.addEventListener('click', e => {
+    e.preventDefault();
+    window.open(link.href, 'spelling-bee-hints', 'noopener,noreferrer,width=600');
+  });
+  return true;
+}
+
 function init() {
   cleanup();
-  if (attachObserver()) return;
+  let wordlistDone = attachObserver();
+  let hintsDone = attachHintsLinkPatch();
+  if (wordlistDone && hintsDone) return;
   const observer = new MutationObserver(() => {
-    if (attachObserver()) observer.disconnect();
+    if (!wordlistDone) wordlistDone = attachObserver();
+    if (!hintsDone) hintsDone = attachHintsLinkPatch();
+    if (wordlistDone && hintsDone) observer.disconnect();
   });
   observer.observe(document.body, { childList: true, subtree: true });
 }
