@@ -6,7 +6,7 @@ A Firefox extension that tracks your NYT Spelling Bee words.
 
 ## Official Mozilla add-on page
 
-https://addons.mozilla.org/en-US/developers/addon/spelling-bee-hint-tracker
+https://addons.mozilla.org/en-US/firefox/addon/spelling-bee-hint-tracker
 
 ## Building
 
