@@ -5,7 +5,8 @@
   "description": "Syncs your found words from the NYT Spelling Bee game to the hints page grid.",
   "permissions": [
     "storage",
-    "https://www.nytimes.com/*"
+    "https://www.nytimes.com/*",
+    "https://api.dictionaryapi.dev/*"
   ],
   "browser_specific_settings": {
     "gecko": {

@@ -1,8 +1,113 @@
 // for https://www.nytimes.com/puzzles/spelling-bee
-// reads the found-words list and syncs it to browser.storage.local, keyed by the puzzle's unique letter set
+// parses the found-words list and syncs it to browser.storage.local, keyed by the puzzle's unique letter set
 
+// local storage key
 const DATA_KEY = 'sbf_data';
 const MAX_AGE_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
+
+// word definition tooltips
+const DICT_API = 'https://api.dictionaryapi.dev/api/v2/entries/en/';
+const defCache = new Map(); // word -> definition string, or null if not found
+
+async function fetchDefinition(word) {
+  if (defCache.has(word)) return defCache.get(word);
+  try {
+    const res = await fetch(DICT_API + encodeURIComponent(word));
+    if (!res.ok) { defCache.set(word, null); return null; }
+    const data = await res.json();
+    const def = data?.[0]?.meanings?.[0]?.definitions?.[0]?.definition ?? null;
+    defCache.set(word, def);
+    return def;
+  } catch {
+    defCache.set(word, null);
+    return null;
+  }
+}
+
+function injectTooltipStyles() {
+  if (document.getElementById('sbf-word-tip-style')) return;
+
+  const style = document.createElement('style');
+
+  style.id = 'sbf-word-tip-style';
+  style.textContent = `
+    #sbf-word-tip {
+      display: none;
+      position: fixed;
+      background: #333;
+      color: #fff;
+      padding: 5px 9px;
+      border-radius: 4px;
+      font-size: 12px;
+      width: 200px;
+      text-align: center;
+      z-index: 99999;
+      pointer-events: none;
+      line-height: 1.4;
+      white-space: normal;
+    }
+  `;
+
+  document.head.appendChild(style);
+}
+
+let wordTip = null;
+
+function getWordDef() {
+  if (!wordTip) {
+    injectTooltipStyles();
+    wordTip = document.createElement('div');
+    wordTip.id = 'sbf-word-tip';
+    document.body.appendChild(wordTip);
+  }
+  return wordTip;
+}
+
+function showWordDef(anchor, text) {
+  const tip = getWordDef();
+  tip.textContent = text;
+  tip.style.display = 'block';
+  const a = anchor.getBoundingClientRect();
+  const t = tip.getBoundingClientRect();
+  let left = a.left + a.width / 2 - t.width / 2;
+  let top = a.top - t.height - 8;
+
+  // clamp horizontally; flip below if too close to top
+  left = Math.max(4, Math.min(left, window.innerWidth - t.width - 4));
+
+  if (top < 4) top = a.bottom + 8;
+  tip.style.left = `${left}px`;
+  tip.style.top = `${top}px`;
+}
+
+function hideWordTip() {
+  if (wordTip) wordTip.style.display = 'none';
+}
+
+function attachWordTooltip(el) {
+  if (el.dataset.sbfTip) return; // already attached
+
+  el.dataset.sbfTip = '1';
+  let activeWord = null;
+
+  el.addEventListener('mouseenter', async () => {
+    const word = el.textContent.trim().toLowerCase();
+    activeWord = word;
+    showWordDef(el, 'Fetching definition...');
+    const def = await fetchDefinition(word);
+    if (activeWord !== word) return; // mouse moved away before fetch completed
+    showWordDef(el, def ?? 'No definition found.');
+  });
+
+  el.addEventListener('mouseleave', () => {
+    activeWord = null;
+    hideWordTip();
+  });
+}
+
+function attachAllWordTooltips() {
+  document.querySelectorAll('.sb-wordlist-items-pag .sb-anagram').forEach(attachWordTooltip);
+}
 
 // sort the 7 puzzle letters to form a stable unique key, e.g. "cfilnot"
 function getPuzzleKey() {
@@ -49,8 +154,9 @@ function cleanup() {
 function attachObserver() {
   const box = document.querySelector('.sb-wordlist-box');
   if (!box) return false;
-  new MutationObserver(save).observe(box, { childList: true, subtree: true });
+  new MutationObserver(() => { save(); attachAllWordTooltips(); }).observe(box, { childList: true, subtree: true });
   save();
+  attachAllWordTooltips();
   return true;
 }
 
