@@ -15,7 +15,28 @@ async function fetchDefinition(word) {
     const res = await fetch(DICT_API + encodeURIComponent(word));
     if (!res.ok) { defCache.set(word, null); return null; }
     const data = await res.json();
-    const def = data?.[0]?.meanings?.[0]?.definitions?.[0]?.definition ?? null;
+    // prefer noun then verb, then fill remaining slot from whatever's left
+    const meanings = data?.[0]?.meanings ?? [];
+    const preferred = ['noun', 'verb'];
+    const picked = [];
+    for (const pos of preferred) {
+      if (picked.length >= 2) break;
+      const m = meanings.find(m => m.partOfSpeech === pos);
+      if (m) picked.push(m);
+    }
+    for (const m of meanings) {
+      if (picked.length >= 2) break;
+      if (!picked.includes(m)) picked.push(m);
+    }
+    // prefer one def per part-of-speech; only pull a second from the same pos if there's just one meaning
+    const pairs = picked
+      .map(m => ({ pos: m.partOfSpeech, text: m.definitions?.[0]?.definition ?? '' }))
+      .filter(d => d.text);
+    if (pairs.length < 2 && picked[0]) {
+      const second = picked[0].definitions?.[1]?.definition;
+      if (second) pairs.push({ pos: picked[0].partOfSpeech, text: second });
+    }
+    const def = pairs.length ? pairs : null;
     defCache.set(word, def);
     return def;
   } catch {
@@ -63,9 +84,20 @@ function getWordDef() {
   return wordTip;
 }
 
-function showWordDef(anchor, text) {
+function showWordDef(anchor, def) {
   const tip = getWordDef();
-  tip.textContent = text;
+  tip.textContent = '';
+  if (typeof def === 'string') {
+    tip.textContent = def;
+  } else if (Array.isArray(def)) {
+    def.forEach((d, i) => {
+      if (i > 0) tip.appendChild(document.createElement('br'));
+      const label = document.createElement('em');
+      label.textContent = d.pos + ': ';
+      tip.appendChild(label);
+      tip.appendChild(document.createTextNode(d.text));
+    });
+  }
   tip.style.display = 'block';
   const a = anchor.getBoundingClientRect();
   const t = tip.getBoundingClientRect();
