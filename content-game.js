@@ -6,8 +6,9 @@ const DATA_KEY = 'sbf_data';
 const MAX_AGE_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
 
 // word definition tooltips
-const DICT_API = 'https://api.dictionaryapi.dev/api/v2/entries/en/';
-const defCache = new Map(); // word -> definition string, or null if not found
+const DICT_API = 'https://api.datamuse.com/words?md=dp&max=1&sp=';
+const POS_NAMES = { n: 'noun', v: 'verb', adj: 'adjective', adv: 'adverb' };
+const defCache = new Map(); // word -> [{pos, text}] pairs, or null if not found
 
 async function fetchDefinition(word) {
   if (defCache.has(word)) return defCache.get(word);
@@ -15,28 +16,30 @@ async function fetchDefinition(word) {
     const res = await fetch(DICT_API + encodeURIComponent(word));
     if (!res.ok) { defCache.set(word, null); return null; }
     const data = await res.json();
-    // prefer noun then verb, then fill remaining slot from whatever's left
-    const meanings = data?.[0]?.meanings ?? [];
+    // defs come as "pos\tdefinition text" strings, e.g. "n\tA sharp point"
+    const defs = (data?.[0]?.word === word && data[0].defs) || [];
+    const meanings = defs.map(d => {
+      const [pos, text] = d.split('\t');
+      return { pos: POS_NAMES[pos] ?? pos, text: (text ?? '').trim() };
+    }).filter(m => m.text);
+    // prefer noun then verb, then fill remaining slot from whatever's left;
+    // one def per part-of-speech unless there's nothing else to show
     const preferred = ['noun', 'verb'];
     const picked = [];
     for (const pos of preferred) {
       if (picked.length >= 2) break;
-      const m = meanings.find(m => m.partOfSpeech === pos);
+      const m = meanings.find(m => m.pos === pos);
       if (m) picked.push(m);
     }
     for (const m of meanings) {
       if (picked.length >= 2) break;
-      if (!picked.includes(m)) picked.push(m);
+      if (!picked.some(p => p.pos === m.pos)) picked.push(m);
     }
-    // prefer one def per part-of-speech; only pull a second from the same pos if there's just one meaning
-    const pairs = picked
-      .map(m => ({ pos: m.partOfSpeech, text: m.definitions?.[0]?.definition ?? '' }))
-      .filter(d => d.text);
-    if (pairs.length < 2 && picked[0]) {
-      const second = picked[0].definitions?.[1]?.definition;
-      if (second) pairs.push({ pos: picked[0].partOfSpeech, text: second });
+    if (picked.length < 2) {
+      const second = meanings.find(m => !picked.includes(m));
+      if (second) picked.push(second);
     }
-    const def = pairs.length ? pairs : null;
+    const def = picked.length ? picked : null;
     defCache.set(word, def);
     return def;
   } catch {
