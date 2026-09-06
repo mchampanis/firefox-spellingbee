@@ -1,12 +1,12 @@
 {
   "manifest_version": 2,
   "name": "Spelling Bee Hint Tracker",
-  "version": "1.41",
+  "version": "1.42",
   "description": "Syncs your found words from the NYT Spelling Bee game to the hints page grid.",
   "permissions": [
     "storage",
     "https://www.nytimes.com/*",
-    "https://api.dictionaryapi.dev/*"
+    "https://api.datamuse.com/*"
   ],
   "browser_specific_settings": {
     "gecko": {
